@@ -65,47 +65,49 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">Visão geral da sua dispensa</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Cards de estatísticas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {statCards.map((card) => (
-          <div key={card.label} className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{card.label}</p>
-                <p className="text-3xl font-bold text-foreground mt-1">{card.value}</p>
-              </div>
-              <card.icon className={`h-8 w-8 ${card.color} opacity-80`} />
+          <div
+            key={card.label}
+            className="bg-white rounded-lg shadow p-4 flex items-center justify-between"
+          >
+            <div>
+              <p className="text-sm text-muted-foreground">{card.label}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{card.value}</p>
             </div>
+            <card.icon className={`h-8 w-8 ${card.color} opacity-80`} />
           </div>
         ))}
       </div>
 
-      <div className="glass-card">
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold text-foreground">Últimos itens atualizados</h2>
-          </div>
+      {/* Últimos itens */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="p-4 border-b border-border flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-semibold text-foreground text-sm sm:text-base">Últimos itens atualizados</h2>
         </div>
         <div className="divide-y divide-border">
           {stats.ultimosItens.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
+            <div className="p-4 text-center text-muted-foreground text-sm sm:text-base">
               Nenhum item na dispensa ainda.
             </div>
           ) : (
             stats.ultimosItens.map((item) => (
-              <div key={item.id} className="p-4 flex items-center justify-between">
+              <div key={item.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between">
                 <div>
                   <p className="font-medium text-foreground">{item.produtos?.nome}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mt-1 sm:mt-0">
                     {new Date(item.updated_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
-                <span className="text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-foreground mt-2 sm:mt-0">
                   {item.quantidade} {item.produtos?.unidade}
                 </span>
               </div>
