@@ -45,6 +45,7 @@ const Dispensa = () => {
 
     setLoading(true);
 
+    // Check if item already exists
     const { data: existing } = await supabase
       .from("dispensa_itens")
       .select("id, quantidade")
@@ -54,11 +55,13 @@ const Dispensa = () => {
 
     let error;
     if (existing) {
+      // Update quantity
       ({ error } = await supabase
         .from("dispensa_itens")
         .update({ quantidade: existing.quantidade + qty })
         .eq("id", existing.id));
     } else {
+      // Create new
       ({ error } = await supabase.from("dispensa_itens").insert({
         usuario_id: user.id,
         produto_id: selectedProduto,
@@ -82,26 +85,22 @@ const Dispensa = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      {/* Header */}
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dispensa</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">
-          Adicione itens à sua dispensa
-        </p>
+        <p className="text-muted-foreground">Adicione itens à sua dispensa</p>
       </div>
 
-      {/* Formulário */}
-      <div className="bg-white shadow rounded-lg p-4 sm:p-6 max-w-lg w-full mx-auto">
+      <div className="glass-card p-6 max-w-lg">
         <h2 className="text-lg font-semibold text-foreground mb-4">Adicionar Item</h2>
 
         {produtos.length === 0 ? (
-          <p className="text-muted-foreground text-sm sm:text-base text-center">
+          <p className="text-muted-foreground text-sm">
             Nenhum produto cadastrado. Cadastre um produto primeiro.
           </p>
         ) : (
           <form onSubmit={handleAdd} className="space-y-4">
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label>Produto</Label>
               <Select value={selectedProduto} onValueChange={setSelectedProduto}>
                 <SelectTrigger>
@@ -117,7 +116,7 @@ const Dispensa = () => {
               </Select>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label htmlFor="quantidade">
                 Quantidade {selectedUnit && <span className="text-muted-foreground">({selectedUnit})</span>}
               </Label>
@@ -133,7 +132,7 @@ const Dispensa = () => {
               />
             </div>
 
-            <Button type="submit" disabled={loading || !selectedProduto} className="w-full flex items-center justify-center">
+            <Button type="submit" disabled={loading || !selectedProduto} className="w-full">
               <ShoppingBasket className="h-4 w-4 mr-2" />
               {loading ? "Adicionando..." : "Adicionar à Dispensa"}
             </Button>

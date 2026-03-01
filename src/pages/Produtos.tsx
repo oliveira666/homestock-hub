@@ -70,18 +70,16 @@ const Produtos = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      {/* Header */}
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">Cadastre e gerencie seus produtos</p>
+        <p className="text-muted-foreground">Cadastre e gerencie seus produtos</p>
       </div>
 
-      {/* Formulário de criação */}
-      <div className="bg-white shadow rounded-lg p-4 sm:p-6 max-w-lg w-full mx-auto">
+      <div className="glass-card p-6 max-w-lg">
         <h2 className="text-lg font-semibold text-foreground mb-4">Novo Produto</h2>
         <form onSubmit={handleCreate} className="space-y-4">
-          <div className="space-y-1">
+          <div className="space-y-2">
             <Label htmlFor="nome">Nome</Label>
             <Input
               id="nome"
@@ -92,9 +90,8 @@ const Produtos = () => {
             />
           </div>
 
-          {/* Grid responsivo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>Unidade</Label>
               <Select value={unidade} onValueChange={setUnidade}>
                 <SelectTrigger>
@@ -107,7 +104,7 @@ const Produtos = () => {
               </Select>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label htmlFor="estoque">Estoque mínimo</Label>
               <Input
                 id="estoque"
@@ -120,33 +117,30 @@ const Produtos = () => {
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full flex items-center justify-center">
+          <Button type="submit" disabled={loading} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             {loading ? "Criando..." : "Criar Produto"}
           </Button>
         </form>
       </div>
 
-      {/* Lista de produtos */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <h2 className="font-semibold text-foreground text-sm sm:text-base">Seus Produtos</h2>
+      <div className="glass-card">
+        <div className="p-6 border-b border-border">
+          <h2 className="font-semibold text-foreground">Seus Produtos</h2>
         </div>
         <div className="divide-y divide-border">
           {produtos.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground text-sm sm:text-base">
-              Nenhum produto cadastrado.
-            </div>
+            <div className="p-6 text-center text-muted-foreground">Nenhum produto cadastrado.</div>
           ) : (
             produtos.map((p) => (
-              <div key={p.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between">
+              <div key={p.id} className="p-4 flex items-center justify-between">
                 <div>
                   <p className="font-medium text-foreground">{p.nome}</p>
-                  <p className="text-sm text-muted-foreground mt-1 sm:mt-0">
+                  <p className="text-sm text-muted-foreground">
                     {p.unidade} · Mínimo: {p.estoque_minimo}
                   </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="mt-2 sm:mt-0">
+                <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
