@@ -45,7 +45,6 @@ const Dispensa = () => {
 
     setLoading(true);
 
-    // Check if item already exists
     const { data: existing } = await supabase
       .from("dispensa_itens")
       .select("id, quantidade")
@@ -55,13 +54,11 @@ const Dispensa = () => {
 
     let error;
     if (existing) {
-      // Update quantity
       ({ error } = await supabase
         .from("dispensa_itens")
         .update({ quantidade: existing.quantidade + qty })
         .eq("id", existing.id));
     } else {
-      // Create new
       ({ error } = await supabase.from("dispensa_itens").insert({
         usuario_id: user.id,
         produto_id: selectedProduto,
@@ -85,32 +82,26 @@ const Dispensa = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Dispensa</h1>
-        <p className="text-muted-foreground">Adicione itens à sua dispensa</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Dispensa</h1>
+        <p className="text-sm text-muted-foreground">Adicione itens à sua dispensa</p>
       </div>
 
-      <div className="glass-card p-6 max-w-lg">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Adicionar Item</h2>
+      <div className="glass-card p-4 sm:p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4">Adicionar Item</h2>
 
         {produtos.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            Nenhum produto cadastrado. Cadastre um produto primeiro.
-          </p>
+          <p className="text-muted-foreground text-sm">Nenhum produto cadastrado. Cadastre um produto primeiro.</p>
         ) : (
           <form onSubmit={handleAdd} className="space-y-4">
             <div className="space-y-2">
               <Label>Produto</Label>
               <Select value={selectedProduto} onValueChange={setSelectedProduto}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um produto" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
                 <SelectContent>
                   {produtos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome}
-                    </SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
