@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Produtos from "./pages/Produtos";
-import Dispensa from "./pages/Dispensa";
+
 import Estoque from "./pages/Estoque";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./components/AppLayout";
@@ -31,7 +31,7 @@ const App = () => (
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/produtos" element={<Produtos />} />
-            <Route path="/dispensa" element={<Dispensa />} />
+            <Route path="/dispensa" element={<Navigate to="/estoque" replace />} />
             <Route path="/estoque" element={<Estoque />} />
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Minus, Plus, Upload } from "lucide-react";
+import { Trash2, Minus, Plus, Upload, ShoppingBasket } from "lucide-react";
 
 interface EstoqueItem {
   id: string;
@@ -43,6 +43,13 @@ const Estoque = () => {
   const [bulkLines, setBulkLines] = useState<BulkLine[]>([{ produto_id: "", quantidade: "" }]);
   const [bulkLoading, setBulkLoading] = useState(false);
 
+  // Dispensa (add item) state
+  const [selectedProduto, setSelectedProduto] = useState("");
+  const [quantidade, setQuantidade] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+
+  const selectedUnit = produtos.find((p) => p.id === selectedProduto)?.unidade || "";
+
   const fetchItens = async () => {
     if (!user) return;
     const { data } = await supabase
@@ -63,6 +70,57 @@ const Estoque = () => {
     fetchProdutos();
   }, [user]);
 
+  // --- Add item (dispensa) ---
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selectedProduto) return;
+
+    const qty = Number(quantidade);
+    if (qty <= 0) {
+      toast({ title: "Erro", description: "Quantidade deve ser maior que zero.", variant: "destructive" });
+      return;
+    }
+
+    setAddLoading(true);
+
+    const { data: existing } = await supabase
+      .from("dispensa_itens")
+      .select("id, quantidade")
+      .eq("produto_id", selectedProduto)
+      .eq("usuario_id", user.id)
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      ({ error } = await supabase
+        .from("dispensa_itens")
+        .update({ quantidade: existing.quantidade + qty })
+        .eq("id", existing.id));
+    } else {
+      ({ error } = await supabase.from("dispensa_itens").insert({
+        usuario_id: user.id,
+        produto_id: selectedProduto,
+        quantidade: qty,
+      }));
+    }
+
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({
+        title: existing ? "Quantidade atualizada!" : "Item adicionado!",
+        description: existing
+          ? `Quantidade somada: ${existing.quantidade} + ${qty}`
+          : `${qty} ${selectedUnit} adicionados à dispensa.`,
+      });
+      setQuantidade("");
+      setSelectedProduto("");
+      fetchItens();
+    }
+    setAddLoading(false);
+  };
+
+  // --- Remove / decrease ---
   const handleRemove = async (id: string) => {
     const { error } = await supabase.from("dispensa_itens").delete().eq("id", id);
     if (error) {
@@ -87,7 +145,7 @@ const Estoque = () => {
     }
   };
 
-  // Bulk import
+  // --- Bulk import ---
   const addBulkLine = () => setBulkLines([...bulkLines, { produto_id: "", quantidade: "" }]);
 
   const updateBulkLine = (index: number, field: keyof BulkLine, value: string) => {
@@ -111,12 +169,10 @@ const Estoque = () => {
 
     setBulkLoading(true);
 
-    // Clear previous if requested
     if (clearPrevious) {
       await supabase.from("dispensa_itens").delete().eq("usuario_id", user.id);
     }
 
-    // Insert/update each item
     for (const line of validLines) {
       const qty = Number(line.quantidade);
       if (clearPrevious) {
@@ -157,11 +213,57 @@ const Estoque = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Estoque</h1>
-          <p className="text-sm text-muted-foreground">Gerencie os itens da sua dispensa</p>
-        </div>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Estoque</h1>
+        <p className="text-sm text-muted-foreground">Gerencie os itens da sua dispensa</p>
+      </div>
+
+      {/* Add item form (formerly Dispensa page) */}
+      <div className="glass-card p-4 sm:p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <ShoppingBasket className="h-4 w-4" />
+          Adicionar Item
+        </h2>
+
+        {produtos.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Nenhum produto cadastrado. Cadastre um produto primeiro.</p>
+        ) : (
+          <form onSubmit={handleAdd} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs text-muted-foreground">Produto</Label>
+              <Select value={selectedProduto} onValueChange={setSelectedProduto}>
+                <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
+                <SelectContent>
+                  {produtos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-32 space-y-1">
+              <Label className="text-xs text-muted-foreground">
+                Qtd {selectedUnit && `(${selectedUnit})`}
+              </Label>
+              <Input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+                placeholder="0"
+                required
+              />
+            </div>
+            <Button type="submit" disabled={addLoading || !selectedProduto} className="shrink-0">
+              <ShoppingBasket className="h-4 w-4 mr-2" />
+              {addLoading ? "Adicionando..." : "Adicionar"}
+            </Button>
+          </form>
+        )}
+      </div>
+
+      {/* Action bar */}
+      <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => setShowBulk(!showBulk)}>
           <Upload className="h-4 w-4 mr-2" />
           {showBulk ? "Fechar importação" : "Importação em lote"}
@@ -175,9 +277,7 @@ const Estoque = () => {
             <h2 className="text-base font-semibold text-foreground">Importação em Lote</h2>
             <div className="flex items-center gap-2">
               <Switch checked={clearPrevious} onCheckedChange={setClearPrevious} id="clear" />
-              <Label htmlFor="clear" className="text-sm text-muted-foreground">
-                Limpar estoque anterior
-              </Label>
+              <Label htmlFor="clear" className="text-sm text-muted-foreground">Limpar estoque anterior</Label>
             </div>
           </div>
 
@@ -187,9 +287,7 @@ const Estoque = () => {
                 <div className="flex-1 space-y-1">
                   {i === 0 && <Label className="text-xs text-muted-foreground">Produto</Label>}
                   <Select value={line.produto_id} onValueChange={(v) => updateBulkLine(i, "produto_id", v)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {produtos.map((p) => (
                         <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
@@ -208,14 +306,7 @@ const Estoque = () => {
                     placeholder="0"
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={() => removeBulkLine(i)}
-                  disabled={bulkLines.length <= 1}
-                >
+                <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => removeBulkLine(i)} disabled={bulkLines.length <= 1}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
@@ -234,7 +325,7 @@ const Estoque = () => {
         </div>
       )}
 
-      {/* Stock list — cards on mobile, table on desktop */}
+      {/* Stock list */}
       <div className="glass-card">
         <div className="p-4 sm:p-6 border-b border-border">
           <h2 className="font-semibold text-foreground">Itens em Estoque</h2>
@@ -254,18 +345,14 @@ const Estoque = () => {
             </thead>
             <tbody className="divide-y divide-border">
               {itens.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum item no estoque.</td>
-                </tr>
+                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum item no estoque.</td></tr>
               ) : (
                 itens.map((item) => {
                   const isBaixo = item.produtos && item.quantidade < item.produtos.estoque_minimo;
                   return (
                     <tr key={item.id} className="hover:bg-muted/50 transition-colors">
                       <td className="p-4 font-medium text-foreground">{item.produtos?.nome}</td>
-                      <td className="p-4 text-foreground">
-                        {item.quantidade} {item.produtos?.unidade}
-                      </td>
+                      <td className="p-4 text-foreground">{item.quantidade} {item.produtos?.unidade}</td>
                       <td className="p-4">
                         {isBaixo ? (
                           <Badge variant="destructive" className="text-xs">Baixo</Badge>
@@ -273,17 +360,11 @@ const Estoque = () => {
                           <Badge variant="secondary" className="text-xs bg-success/10 text-success border-0">Normal</Badge>
                         )}
                       </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {new Date(item.updated_at).toLocaleDateString("pt-BR")}
-                      </td>
+                      <td className="p-4 text-sm text-muted-foreground">{new Date(item.updated_at).toLocaleDateString("pt-BR")}</td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleDecrease(item)} title="Diminuir 1">
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleRemove(item.id)} title="Remover">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDecrease(item)} title="Diminuir 1"><Minus className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleRemove(item.id)} title="Remover"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                       </td>
                     </tr>
@@ -316,12 +397,8 @@ const Estoque = () => {
                       {item.quantidade} {item.produtos?.unidade} · {new Date(item.updated_at).toLocaleDateString("pt-BR")}
                     </span>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDecrease(item)}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemove(item.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDecrease(item)}><Minus className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemove(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   </div>
                 </div>
