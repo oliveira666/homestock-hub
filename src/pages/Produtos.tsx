@@ -70,50 +70,34 @@ const Produtos = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
-        <p className="text-muted-foreground">Cadastre e gerencie seus produtos</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Produtos</h1>
+        <p className="text-sm text-muted-foreground">Cadastre e gerencie seus produtos</p>
       </div>
 
-      <div className="glass-card p-6 max-w-lg">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Novo Produto</h2>
+      <div className="glass-card p-4 sm:p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4">Novo Produto</h2>
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="nome">Nome</Label>
-            <Input
-              id="nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Ex: Arroz"
-              required
-            />
+            <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Arroz" required />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Unidade</Label>
               <Select value={unidade} onValueChange={setUnidade}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="kg">kg</SelectItem>
                   <SelectItem value="unidade">unidade</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="estoque">Estoque mínimo</Label>
-              <Input
-                id="estoque"
-                type="number"
-                min="0"
-                value={estoqueMinimo}
-                onChange={(e) => setEstoqueMinimo(e.target.value)}
-                placeholder="0"
-              />
+              <Input id="estoque" type="number" min="0" value={estoqueMinimo} onChange={(e) => setEstoqueMinimo(e.target.value)} placeholder="0" />
             </div>
           </div>
 
@@ -125,22 +109,20 @@ const Produtos = () => {
       </div>
 
       <div className="glass-card">
-        <div className="p-6 border-b border-border">
-          <h2 className="font-semibold text-foreground">Seus Produtos</h2>
+        <div className="p-4 sm:p-6 border-b border-border">
+          <h2 className="font-semibold text-foreground text-sm sm:text-base">Seus Produtos</h2>
         </div>
         <div className="divide-y divide-border">
           {produtos.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">Nenhum produto cadastrado.</div>
+            <div className="p-6 text-center text-sm text-muted-foreground">Nenhum produto cadastrado.</div>
           ) : (
             produtos.map((p) => (
-              <div key={p.id} className="p-4 flex items-center justify-between">
+              <div key={p.id} className="p-3 sm:p-4 flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-foreground">{p.nome}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {p.unidade} · Mínimo: {p.estoque_minimo}
-                  </p>
+                  <p className="font-medium text-foreground text-sm">{p.nome}</p>
+                  <p className="text-xs text-muted-foreground">{p.unidade} · Mínimo: {p.estoque_minimo}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(p.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>

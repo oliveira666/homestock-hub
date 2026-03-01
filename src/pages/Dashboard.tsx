@@ -58,50 +58,48 @@ const Dashboard = () => {
   }, [user]);
 
   const statCards = [
-    { label: "Total de Produtos", value: stats.totalProdutos, icon: Package, color: "text-primary" },
-    { label: "Itens na Dispensa", value: stats.totalItens, icon: ShoppingBasket, color: "text-success" },
+    { label: "Produtos", value: stats.totalProdutos, icon: Package, color: "text-primary" },
+    { label: "Na Dispensa", value: stats.totalItens, icon: ShoppingBasket, color: "text-success" },
     { label: "Estoque Baixo", value: stats.estoqueBaixo, icon: AlertTriangle, color: "text-destructive" },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral da sua dispensa</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Visão geral da sua dispensa</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {statCards.map((card) => (
           <div key={card.label} className="stat-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">{card.label}</p>
-                <p className="text-3xl font-bold text-foreground mt-1">{card.value}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{card.label}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{card.value}</p>
               </div>
-              <card.icon className={`h-8 w-8 ${card.color} opacity-80`} />
+              <card.icon className={`h-6 w-6 sm:h-8 sm:w-8 ${card.color} opacity-80`} />
             </div>
           </div>
         ))}
       </div>
 
       <div className="glass-card">
-        <div className="p-6 border-b border-border">
+        <div className="p-4 sm:p-6 border-b border-border">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold text-foreground">Últimos itens atualizados</h2>
+            <h2 className="font-semibold text-foreground text-sm sm:text-base">Últimos atualizados</h2>
           </div>
         </div>
         <div className="divide-y divide-border">
           {stats.ultimosItens.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
-              Nenhum item na dispensa ainda.
-            </div>
+            <div className="p-6 text-center text-sm text-muted-foreground">Nenhum item ainda.</div>
           ) : (
             stats.ultimosItens.map((item) => (
-              <div key={item.id} className="p-4 flex items-center justify-between">
+              <div key={item.id} className="p-3 sm:p-4 flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-foreground">{item.produtos?.nome}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground text-sm">{item.produtos?.nome}</p>
+                  <p className="text-xs text-muted-foreground">
                     {new Date(item.updated_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
