@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Minus, Plus, Upload, ShoppingBasket } from "lucide-react";
+import { Trash2, Minus, Plus, Upload, Search } from "lucide-react";
 
 interface EstoqueItem {
   id: string;
@@ -28,7 +28,7 @@ interface Produto {
   unidade: string;
 }
 
-interface BulkLine {
+interface ItemLine {
   produto_id: string;
   quantidade: string;
 }
@@ -38,17 +38,10 @@ const Estoque = () => {
   const { toast } = useToast();
   const [itens, setItens] = useState<EstoqueItem[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [showBulk, setShowBulk] = useState(false);
+  const [search, setSearch] = useState("");
   const [clearPrevious, setClearPrevious] = useState(false);
-  const [bulkLines, setBulkLines] = useState<BulkLine[]>([{ produto_id: "", quantidade: "" }]);
-  const [bulkLoading, setBulkLoading] = useState(false);
-
-  // Dispensa (add item) state
-  const [selectedProduto, setSelectedProduto] = useState("");
-  const [quantidade, setQuantidade] = useState("");
-  const [addLoading, setAddLoading] = useState(false);
-
-  const selectedUnit = produtos.find((p) => p.id === selectedProduto)?.unidade || "";
+  const [lines, setLines] = useState<ItemLine[]>([{ produto_id: "", quantidade: "" }]);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const fetchItens = async () => {
     if (!user) return;
@@ -70,104 +63,29 @@ const Estoque = () => {
     fetchProdutos();
   }, [user]);
 
-  // --- Add item (dispensa) ---
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedProduto) return;
+  // --- Unified add (single or multiple) ---
+  const addLine = () => setLines([...lines, { produto_id: "", quantidade: "" }]);
 
-    const qty = Number(quantidade);
-    if (qty <= 0) {
-      toast({ title: "Erro", description: "Quantidade deve ser maior que zero.", variant: "destructive" });
-      return;
-    }
-
-    setAddLoading(true);
-
-    const { data: existing } = await supabase
-      .from("dispensa_itens")
-      .select("id, quantidade")
-      .eq("produto_id", selectedProduto)
-      .eq("usuario_id", user.id)
-      .maybeSingle();
-
-    let error;
-    if (existing) {
-      ({ error } = await supabase
-        .from("dispensa_itens")
-        .update({ quantidade: existing.quantidade + qty })
-        .eq("id", existing.id));
-    } else {
-      ({ error } = await supabase.from("dispensa_itens").insert({
-        usuario_id: user.id,
-        produto_id: selectedProduto,
-        quantidade: qty,
-      }));
-    }
-
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({
-        title: existing ? "Quantidade atualizada!" : "Item adicionado!",
-        description: existing
-          ? `Quantidade somada: ${existing.quantidade} + ${qty}`
-          : `${qty} ${selectedUnit} adicionados à dispensa.`,
-      });
-      setQuantidade("");
-      setSelectedProduto("");
-      fetchItens();
-    }
-    setAddLoading(false);
-  };
-
-  // --- Remove / decrease ---
-  const handleRemove = async (id: string) => {
-    const { error } = await supabase.from("dispensa_itens").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Item removido!" });
-      fetchItens();
-    }
-  };
-
-  const handleDecrease = async (item: EstoqueItem) => {
-    const newQty = item.quantidade - 1;
-    if (newQty <= 0) {
-      await handleRemove(item.id);
-      return;
-    }
-    const { error } = await supabase.from("dispensa_itens").update({ quantidade: newQty }).eq("id", item.id);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      fetchItens();
-    }
-  };
-
-  // --- Bulk import ---
-  const addBulkLine = () => setBulkLines([...bulkLines, { produto_id: "", quantidade: "" }]);
-
-  const updateBulkLine = (index: number, field: keyof BulkLine, value: string) => {
-    const updated = [...bulkLines];
+  const updateLine = (index: number, field: keyof ItemLine, value: string) => {
+    const updated = [...lines];
     updated[index][field] = value;
-    setBulkLines(updated);
+    setLines(updated);
   };
 
-  const removeBulkLine = (index: number) => {
-    if (bulkLines.length <= 1) return;
-    setBulkLines(bulkLines.filter((_, i) => i !== index));
+  const removeLine = (index: number) => {
+    if (lines.length <= 1) return;
+    setLines(lines.filter((_, i) => i !== index));
   };
 
-  const handleBulkImport = async () => {
+  const handleSubmit = async () => {
     if (!user) return;
-    const validLines = bulkLines.filter((l) => l.produto_id && Number(l.quantidade) > 0);
+    const validLines = lines.filter((l) => l.produto_id && Number(l.quantidade) > 0);
     if (validLines.length === 0) {
       toast({ title: "Erro", description: "Adicione ao menos um item válido.", variant: "destructive" });
       return;
     }
 
-    setBulkLoading(true);
+    setSubmitLoading(true);
 
     if (clearPrevious) {
       await supabase.from("dispensa_itens").delete().eq("usuario_id", user.id);
@@ -204,12 +122,45 @@ const Estoque = () => {
       }
     }
 
-    toast({ title: "Importação concluída!", description: `${validLines.length} itens processados.` });
-    setBulkLines([{ produto_id: "", quantidade: "" }]);
-    setShowBulk(false);
-    setBulkLoading(false);
+    toast({
+      title: validLines.length === 1 ? "Item adicionado!" : "Itens adicionados!",
+      description: `${validLines.length} item(ns) processado(s).`,
+    });
+    setLines([{ produto_id: "", quantidade: "" }]);
+    setClearPrevious(false);
+    setSubmitLoading(false);
     fetchItens();
   };
+
+  // --- Remove / decrease ---
+  const handleRemove = async (id: string) => {
+    const { error } = await supabase.from("dispensa_itens").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Item removido!" });
+      fetchItens();
+    }
+  };
+
+  const handleDecrease = async (item: EstoqueItem) => {
+    const newQty = item.quantidade - 1;
+    if (newQty <= 0) {
+      await handleRemove(item.id);
+      return;
+    }
+    const { error } = await supabase.from("dispensa_itens").update({ quantidade: newQty }).eq("id", item.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      fetchItens();
+    }
+  };
+
+  // --- Filter ---
+  const filteredItens = itens.filter((item) =>
+    !search || item.produtos?.nome?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -218,117 +169,90 @@ const Estoque = () => {
         <p className="text-sm text-muted-foreground">Gerencie os itens da sua dispensa</p>
       </div>
 
-      {/* Add item form (formerly Dispensa page) */}
-      <div className="glass-card p-4 sm:p-6">
-        <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <ShoppingBasket className="h-4 w-4" />
-          Adicionar Item
-        </h2>
-
-        {produtos.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Nenhum produto cadastrado. Cadastre um produto primeiro.</p>
-        ) : (
-          <form onSubmit={handleAdd} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs text-muted-foreground">Produto</Label>
-              <Select value={selectedProduto} onValueChange={setSelectedProduto}>
-                <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
-                <SelectContent>
-                  {produtos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full sm:w-32 space-y-1">
-              <Label className="text-xs text-muted-foreground">
-                Qtd {selectedUnit && `(${selectedUnit})`}
-              </Label>
-              <Input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={quantidade}
-                onChange={(e) => setQuantidade(e.target.value)}
-                placeholder="0"
-                required
-              />
-            </div>
-            <Button type="submit" disabled={addLoading || !selectedProduto} className="shrink-0">
-              <ShoppingBasket className="h-4 w-4 mr-2" />
-              {addLoading ? "Adicionando..." : "Adicionar"}
-            </Button>
-          </form>
-        )}
-      </div>
-
-      {/* Action bar */}
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => setShowBulk(!showBulk)}>
-          <Upload className="h-4 w-4 mr-2" />
-          {showBulk ? "Fechar importação" : "Importação em lote"}
-        </Button>
-      </div>
-
-      {/* Bulk import panel */}
-      {showBulk && (
-        <div className="glass-card p-4 sm:p-6 space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-base font-semibold text-foreground">Importação em Lote</h2>
+      {/* Unified add form */}
+      <div className="glass-card p-4 sm:p-6 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-base font-semibold text-foreground">Adicionar Itens</h2>
+          {lines.length > 1 && (
             <div className="flex items-center gap-2">
               <Switch checked={clearPrevious} onCheckedChange={setClearPrevious} id="clear" />
               <Label htmlFor="clear" className="text-sm text-muted-foreground">Limpar estoque anterior</Label>
             </div>
-          </div>
-
-          <div className="space-y-3">
-            {bulkLines.map((line, i) => (
-              <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                <div className="flex-1 space-y-1">
-                  {i === 0 && <Label className="text-xs text-muted-foreground">Produto</Label>}
-                  <Select value={line.produto_id} onValueChange={(v) => updateBulkLine(i, "produto_id", v)}>
-                    <SelectTrigger className="w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {produtos.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="w-full sm:w-28 space-y-1">
-                  {i === 0 && <Label className="text-xs text-muted-foreground">Qtd</Label>}
-                  <Input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={line.quantidade}
-                    onChange={(e) => updateBulkLine(i, "quantidade", e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => removeBulkLine(i)} disabled={bulkLines.length <= 1}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-            <Button variant="outline" size="sm" onClick={addBulkLine}>
-              <Plus className="h-4 w-4 mr-1" /> Mais um item
-            </Button>
-            <Button onClick={handleBulkImport} disabled={bulkLoading} size="sm">
-              <Upload className="h-4 w-4 mr-2" />
-              {bulkLoading ? "Importando..." : "Importar tudo"}
-            </Button>
-          </div>
+          )}
         </div>
-      )}
+
+        {produtos.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Nenhum produto cadastrado. Cadastre um produto primeiro.</p>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {lines.map((line, i) => {
+                const unit = produtos.find((p) => p.id === line.produto_id)?.unidade || "";
+                return (
+                  <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="flex-1 space-y-1">
+                      {i === 0 && <Label className="text-xs text-muted-foreground">Produto</Label>}
+                      <Select value={line.produto_id} onValueChange={(v) => updateLine(i, "produto_id", v)}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {produtos.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-full sm:w-28 space-y-1">
+                      {i === 0 && <Label className="text-xs text-muted-foreground">Qtd {unit && `(${unit})`}</Label>}
+                      <Input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={line.quantidade}
+                        onChange={(e) => updateLine(i, "quantidade", e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => removeLine(i)}
+                      disabled={lines.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
+              <Button variant="outline" size="sm" onClick={addLine}>
+                <Plus className="h-4 w-4 mr-1" /> Mais um item
+              </Button>
+              <Button onClick={handleSubmit} disabled={submitLoading} size="sm">
+                <Upload className="h-4 w-4 mr-2" />
+                {submitLoading ? "Salvando..." : lines.length > 1 ? "Salvar todos" : "Adicionar"}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Stock list */}
       <div className="glass-card">
-        <div className="p-4 sm:p-6 border-b border-border">
+        <div className="p-4 sm:p-6 border-b border-border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-semibold text-foreground">Itens em Estoque</h2>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Filtrar por nome..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </div>
 
         {/* Desktop table */}
@@ -344,10 +268,12 @@ const Estoque = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {itens.length === 0 ? (
-                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum item no estoque.</td></tr>
+              {filteredItens.length === 0 ? (
+                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">
+                  {search ? "Nenhum item encontrado." : "Nenhum item no estoque."}
+                </td></tr>
               ) : (
-                itens.map((item) => {
+                filteredItens.map((item) => {
                   const isBaixo = item.produtos && item.quantidade < item.produtos.estoque_minimo;
                   return (
                     <tr key={item.id} className="hover:bg-muted/50 transition-colors">
@@ -377,10 +303,12 @@ const Estoque = () => {
 
         {/* Mobile cards */}
         <div className="sm:hidden divide-y divide-border">
-          {itens.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">Nenhum item no estoque.</div>
+          {filteredItens.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground">
+              {search ? "Nenhum item encontrado." : "Nenhum item no estoque."}
+            </div>
           ) : (
-            itens.map((item) => {
+            filteredItens.map((item) => {
               const isBaixo = item.produtos && item.quantidade < item.produtos.estoque_minimo;
               return (
                 <div key={item.id} className="p-4 space-y-2">
