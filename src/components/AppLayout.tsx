@@ -1,13 +1,14 @@
 import { Outlet } from "react-router-dom";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Package, ClipboardList, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, ClipboardList, LogOut, Menu, X, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/produtos", label: "Produtos", icon: Package },
   { to: "/estoque", label: "Estoque", icon: ClipboardList },
+  { to: "/ocr-estoque", label: "OCR", icon: Camera },
 ];
 
 const AppLayout = () => {

@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Produtos from "./pages/Produtos";
 
 import Estoque from "./pages/Estoque";
+import OcrEstoque from "./pages/OcrEstoque";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/dispensa" element={<Navigate to="/estoque" replace />} />
             <Route path="/estoque" element={<Estoque />} />
+            <Route path="/ocr-estoque" element={<OcrEstoque />} />
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<NotFound />} />

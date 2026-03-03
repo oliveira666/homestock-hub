@@ -1,1 +1,4 @@
 project_id = "nmcryupygkresgsygsok"
+
+[functions.ocr-estoque]
+verify_jwt = false
